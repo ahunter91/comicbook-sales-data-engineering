@@ -1,5 +1,4 @@
 # comic-book-business
-A mock online comic book sales data engineering project to demonstrate my knowledge and skills including Python, SQL, and AWS services. This was my final capstone project for a Big Data Engineering bootcamp hosted by CWU.
 
 ### Mock Business:
 1. **Name:** ComiVerse
