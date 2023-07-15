@@ -6,44 +6,47 @@
 3. **Description:** ComiVerse is an online platform that offers a wide selection of comic books and manga from various publishers. It aims to provide comic enthusiasts with a convenient way to discover, purchase, and enjoy their favorite titles. A loyalty program is available to customers to participate in to earn points per purchase.
 
 ### Model a Business Process:
+*[Business Process Model.png](https://github.com/ahunter91/comic-book-business/blob/main/Business%20Process%20Model.png)*
 1. **(Customer)** A customer places an online order for a comic book(s) and fills out their information (name, address, email, phone, and loyalty id if applicable). 
 2. **(Inventory)** Inventory contains available stock, comic and publisher id's, and unit cost.
 3. **(Comics)** Information on comic title, publisher, binding (softcover and hardcover), and publishing format (graphic novel, collected edition, one-shot, etc.) are referenced here.*
 4. **(Transactions)** Final transactional info from the customers' orders ties together the customer, unit cost, quantity purchased, and adds the total amount (quantity x unit cost) plus a transaction date to keep track of orders.
 
 ### Logical Data Model:
-**Entities**
+*[ComiVerse EER Diagram.png](https://github.com/ahunter91/comic-book-business/blob/main/ComiVerse%20EER%20Diagram.png)*
+#### **Entities**
  1. **Customers** (Dimension Table): customer_id, first_name, last_name, email, address, city, state, zip, phone_number, loyalty_id, loyalty_points. PK: customer_id
  2. **Comics** (Dimension Table): comic_id, title, binding, publishing_format, year_published, publisher_id, publisher_name, unit_cost. PK: comic_id
  3. **Inventory** (Dimension Table): comic_id, publisher_id, unit_cost, current_stock. PK: comic_id, publisher_id
  4. **Transactions** (Fact Table): transaction_id, transaction_date, quantity, unit_cost, customer_id, comic_id, total_amount. PK: transaction_id, FK: customer_id (fk_transactions_customers), comic_id (fk_transactions_comics)
- **Relationships**
- Customers -> Transactions (One-to-Many)
- Comics -> Transactions (One-to-Many)
- Comics -> Inventory (One-to-One)
+#### **Relationships**
+* Customers -> Transactions (One-to-Many)
+* Comics -> Transactions (One-to-Many)
+* Comics -> Inventory (One-to-One)
 
  ### Promote Logical Data Model to Physical Data Model
- 1. **Generate DDL:** Wrote SQL scripts to create tables for each entity with their respecitive attributes and relationships.
- 2. **AWS RDS:** Created an RDS database, comiverse-db, running MySQL server community edition. Connected to database through Mac Terminal CLI and created tables. [See file 'RDS DDL.sql']
+ * **Generate DDL:** Wrote SQL scripts to create tables for each entity with their respecitive attributes and relationships.
+ * **AWS RDS:** Created an RDS database, comiverse-db, running MySQL server community edition. Connected to database through Mac Terminal CLI and created tables.
+*[[RDS Instance.py](https://github.com/ahunter91/comic-book-business/blob/main/RDS%20Instance.py), [RDS DDL.sql](https://github.com/ahunter91/comic-book-business/blob/main/RDS%20DDL.sql)]*
 
  ### Get or Generate Data to Populate to RDS Database
 1. **Comics**: 
- I downloaded the full Grand Comics Database as a MySQL dump, available at https://www.comics.org to obtain data to reference for my comics table. Due to the large size of this database I ended up downloading 7 publisher's CSV files from their pages in comics.org (Boom! Studios, Dark Horse Comics, DC Comics, IDW, Image Comics, Marvel Comics, VizData), and limited the comics to softcover and hardcover formats, and filtered publishing formats to only those that were consistent and properly formatted. I then combined/concatenated the files into a single CSV file and added a random number for the unit_cost column. [See file 'Comics.py']
+ I downloaded the full Grand Comics Database as a MySQL dump, available at https://www.comics.org to obtain data to reference for my comics table. Due to the large size of this database I ended up downloading 7 publisher's CSV files from their pages in comics.org (Boom! Studios, Dark Horse Comics, DC Comics, IDW, Image Comics, Marvel Comics, VizData), and limited the comics to softcover and hardcover formats, and filtered publishing formats to only those that were consistent and properly formatted. I then combined/concatenated the files into a single CSV file and added a random number for the unit_cost column. *[[Comics.py](https://github.com/ahunter91/comic-book-business/blob/main/Comics.py)]*
 2. **Inventory**: 
- Data for the inventory table was generated with data from the comics CSV file as well as Python faker to generate random numbers for current_stock from 0-1000. [See file 'Inventory.py']
+ Data for the inventory table was generated with data from the comics CSV file as well as Python faker to generate random numbers for current_stock from 0-1000. *[[Inventory.py](https://github.com/ahunter91/comic-book-business/blob/main/Inventory.py)]*
 3. **Customers**: 
- Data for my customers table is fully generated from Python's faker and random libraries. 1000 customers were generated with unique ids, as well as unique loyalty ids. If a customer does not have a loyalty id the loyalty points column will be empty. If they do have a loyalty id their points balance will be randomly generated between 0 and 100000. [See file 'FakerCustomers.py']
+ Data for my customers table is fully generated from Python's faker and random libraries. 1000 customers were generated with unique ids, as well as unique loyalty ids. If a customer does not have a loyalty id the loyalty points column will be empty. If they do have a loyalty id their points balance will be randomly generated between 0 and 100000. *[[FakerCustomers.py](https://github.com/ahunter91/comic-book-business/blob/main/FakerCustomers.py)]*
 4. **Transactions**: 
-Data for the transactions table pulls data from the customers and comics CSV files, as well as Python's faker, random, and datetime libraries. 3000 fake transactions dated within the last 3 years are generated with unique transaction ids. The total_amount column is generated by multiplying the quantity column (a random integer between 1-10) by the unit_cost column from comics.csv. [See file 'FakerTransactions.py']
+Data for the transactions table pulls data from the customers and comics CSV files, as well as Python's faker, random, and datetime libraries. 3000 fake transactions dated within the last 3 years are generated with unique transaction ids. The total_amount column is generated by multiplying the quantity column (a random integer between 1-10) by the unit_cost column from comics.csv. *[[FakerTransactions.py](https://github.com/ahunter91/comic-book-business/blob/main/FakerTransactions.py)]*
 
 ### Ingest Data from RDS to S3, Crawl & verify data in S3, Data Lake Formation
-I used AWS Glue ETL Jobs to read each table in my RDS database to store in an S3 bucket with the folder structure named as the tables. Then I created an AWS Glue Crawler to create the database comiverse_db from the S3 bucket. The Glue Crawler required Lake Formation privileges to run on the S3 bucket so I made sure the IAM role I was using had the right policies attached and permissions set in Lake Formation, as well as adding the Amazon S3 path to my bucket to the comiverse_db database in Lake Formation, which was created during the ETL job. [See ETL py scripts]
+I used AWS Glue ETL Jobs to read each table in my RDS database to store in an S3 bucket with the folder structure named as the tables. Then I created an AWS Glue Crawler to create the database comiverse_db from the S3 bucket. The Glue Crawler required Lake Formation privileges to run on the S3 bucket so I made sure the IAM role I was using had the right policies attached and permissions set in Lake Formation, as well as adding the Amazon S3 path to my bucket to the comiverse_db database in Lake Formation, which was created during the ETL job. *[ETL scripts: [GlueComicsTable.py](https://github.com/ahunter91/comic-book-business/blob/main/GlueComicsTable.py), [GlueCustomersTable.py](https://github.com/ahunter91/comic-book-business/blob/main/GlueCustomersTable.py), [GlueInventoryTable.py](https://github.com/ahunter91/comic-book-business/blob/main/GlueInventoryTable.py), [GlueTransactionsTable.py'](https://github.com/ahunter91/comic-book-business/blob/main/GlueTransactionsTable.py)]*
 
 ### Create a Redshift Cluster
-Finally created a Redshift Cluster and launched query editor to create a new schema and internal tables for the data stored in S3. Then used the Redshift SQL COPY command to move the data from S3 into the Redshift tables, and queried to verify the data came through correct.
+Finally created a Redshift Cluster and launched query editor to create a new schema and internal tables for the data stored in S3. Then used the Redshift SQL COPY command to move the data from S3 into the Redshift tables, and queried to verify the data came through correct. *[[Redshift Warehouse DDL.sql](https://github.com/ahunter91/comic-book-business/blob/main/Redshift%20Warehouse%20DDL.sql)]*
 
 The final step was to create a SageMaker Notebook instance and create a notebook to document each step of the project, similar to this, including diagrams and pieces of code, which I did in JupyterLab.
 
 
-## Final Note:
-* I wasn't able to find just an author list in the GCD database, but as a personal project I intend to continue working on my database locally and incorporate APIs to find author, MSRP, and ISBN data into my tables.
+#### Final Note:
+I wasn't able to find just an author list in the GCD database, but as a personal project I intend to continue working on my database locally and incorporate APIs to find author, MSRP, and ISBN data into my tables.
